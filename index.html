@@ -28,16 +28,29 @@
     .spectator-banner {
       background: linear-gradient(135deg, #1e3a8a, #2563eb);
       color: #fff;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1.1rem;
       border-radius: var(--radius);
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1.25rem;
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
     }
-    .spectator-banner span { font-size: 0.85rem; opacity: 0.9; }
-    .spectator-banner code { font-weight: 700; font-size: 1rem; letter-spacing: 1px; background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 6px; }
+    .spectator-banner span { font-size: 0.9rem; opacity: 0.95; font-weight: 500; }
+    .code-container { display: flex; align-items: center; gap: 0.5rem; }
+    .spectator-banner code {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 1px;
+      background: rgba(255,255,255,0.22);
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: all;
+    }
+    .spectator-banner code:hover { background: rgba(255,255,255,0.32); }
+    .copy-tip { font-size: 0.72rem; opacity: 0.8; }
 
     .controls { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
     .search-box {
@@ -112,21 +125,24 @@
     .btn-hotel:hover { background: #d1fae5; }
     .btn-site { background: #eff6ff; color: #1e40af; }
     .btn-site:hover { background: #dbeafe; }
-    .btn.disabled { opacity: 0.4; pointer-events: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <h1>Meraki Boys Parents Hub</h1>
-      <p>Tournament schedules, hotels, locations, and updates for 2026–2027</p>
+      <p>Tournament schedules, hotels, locations, and spectator codes for 2026–2027</p>
     </header>
 
-    <div class="spectator-banner">
+    <!-- Dynamic Spectator Banner -->
+    <div class="spectator-banner" id="spectatorBanner">
       <div>
-        <span>Spectator Code (18-1):</span>
+        <span id="spectatorLabel">Spectator Code:</span>
+        <div class="copy-tip" id="copyTip">Click code to copy</div>
       </div>
-      <code>B18MVNER1NE</code>
+      <div class="code-container">
+        <code id="spectatorCode" title="Click to copy" onclick="copySpectatorCode()">Select a team</code>
+      </div>
     </div>
 
     <div class="controls">
@@ -145,48 +161,57 @@
   </div>
 
   <script>
+    // Spectator codes extracted directly from each team sheet
+    const spectatorCodes = {
+      "Boys 18-1": "B18MVNER1NE",
+      "Boys 17-1": "B17MVNER1NE",
+      "Boys 16-1": "B16MVNER1NE",
+      "Boys 18-2": "B18MVNER2NE",
+      "Boys 16-2": "B16MVNER2NE"
+    };
+
     const tournaments = [
       // Boys 18-1
-      { team: "Boys 18-1", name: "Bounce Invitational", date: "11/21-22", location: "Boston, MA", maps: "", hotel: "", passcode: "", site: "", notes: "Hotel not needed" },
-      { team: "Boys 18-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", passcode: "NA", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
-      { team: "Boys 18-1", name: "Boys Winter Invitational", date: "12/11-13", location: "Louisville, KY", maps: "https://maps.app.goo.gl/iDo7gRd8cqmwRkkj7", hotel: "https://presto.eventpipe.com/event/f47107a9-a317-49d0-b87c-7a84e71c0db0", passcode: "NA", site: "https://events.theacademyvolleyball.com/page/boys-winter-invitational", notes: "Not stay to play" },
-      { team: "Boys 18-1", name: "Southwest Classic", date: "1/16-18", location: "Anaheim, CA", maps: "https://maps.app.goo.gl/WQt38ChXtSipx3qb7", hotel: "https://presto.eventpipe.com/event/4b47d39e-1dda-4f47-b0af-05b64b2d895d", passcode: "NA", site: "https://asc.events/southwest-boys-classic/", notes: "Not stay to play" },
-      { team: "Boys 18-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
-      { team: "Boys 18-1", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", passcode: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
-      { team: "Boys 18-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
+      { team: "Boys 18-1", name: "Bounce Invitational", date: "11/21-22", location: "Boston, MA", maps: "", hotel: "", site: "", notes: "Hotel not needed" },
+      { team: "Boys 18-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
+      { team: "Boys 18-1", name: "Boys Winter Invitational", date: "12/11-13", location: "Louisville, KY", maps: "https://maps.app.goo.gl/iDo7gRd8cqmwRkkj7", hotel: "https://presto.eventpipe.com/event/f47107a9-a317-49d0-b87c-7a84e71c0db0", site: "https://events.theacademyvolleyball.com/page/boys-winter-invitational", notes: "Not stay to play" },
+      { team: "Boys 18-1", name: "Southwest Classic", date: "1/16-18", location: "Anaheim, CA", maps: "https://maps.app.goo.gl/WQt38ChXtSipx3qb7", hotel: "https://presto.eventpipe.com/event/4b47d39e-1dda-4f47-b0af-05b64b2d895d", site: "https://asc.events/southwest-boys-classic/", notes: "Not stay to play" },
+      { team: "Boys 18-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
+      { team: "Boys 18-1", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
+      { team: "Boys 18-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
 
       // Boys 17-1
-      { team: "Boys 17-1", name: "Battle at the Border", date: "11/15-16", location: "Rock Hill, SC", maps: "https://maps.app.goo.gl/NAum7NXVVg6FoDfv9", hotel: "https://www.t2csports.com/upcoming-t2c-events/battle-at-the-border/", passcode: "N/A", site: "https://carolinauvc.sprocketsports.com/club/boysbattleattheborder", notes: "Not stay to play" },
-      { team: "Boys 17-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", passcode: "NA", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
-      { team: "Boys 17-1", name: "Wicked Good", date: "12/19-20", location: "Providence, RI", maps: "https://maps.app.goo.gl/pL1ga8Tdvg2uNdVv7", hotel: "https://portal.thsweb.com/reservations/access/01m6xrx7svpv7t2xfhafh15vab", passcode: "THS-614853", site: "https://jvctournaments.com/WickedGoodChallenge/", notes: "Passcodes: THS-614853 & THS-604241 (Block still open)" },
-      { team: "Boys 17-1", name: "Southwest Classic", date: "1/16-18", location: "Anaheim, CA", maps: "https://maps.app.goo.gl/WQt38ChXtSipx3qb7", hotel: "https://presto.eventpipe.com/event/4b47d39e-1dda-4f47-b0af-05b64b2d895d", passcode: "NA", site: "https://asc.events/southwest-boys-classic/", notes: "Not stay to play" },
-      { team: "Boys 17-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
-      { team: "Boys 17-1", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", passcode: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
-      { team: "Boys 17-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
+      { team: "Boys 17-1", name: "Battle at the Border", date: "11/15-16", location: "Rock Hill, SC", maps: "https://maps.app.goo.gl/NAum7NXVVg6FoDfv9", hotel: "https://www.t2csports.com/upcoming-t2c-events/battle-at-the-border/", site: "https://carolinauvc.sprocketsports.com/club/boysbattleattheborder", notes: "Not stay to play" },
+      { team: "Boys 17-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
+      { team: "Boys 17-1", name: "Wicked Good", date: "12/19-20", location: "Providence, RI", maps: "https://maps.app.goo.gl/pL1ga8Tdvg2uNdVv7", hotel: "https://portal.thsweb.com/reservations/access/01m6xrx7svpv7t2xfhafh15vab", site: "https://jvctournaments.com/WickedGoodChallenge/", notes: "Passcodes: THS-614853 & THS-604241" },
+      { team: "Boys 17-1", name: "Southwest Classic", date: "1/16-18", location: "Anaheim, CA", maps: "https://maps.app.goo.gl/WQt38ChXtSipx3qb7", hotel: "https://presto.eventpipe.com/event/4b47d39e-1dda-4f47-b0af-05b64b2d895d", site: "https://asc.events/southwest-boys-classic/", notes: "Not stay to play" },
+      { team: "Boys 17-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
+      { team: "Boys 17-1", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
+      { team: "Boys 17-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
 
       // Boys 16-1
-      { team: "Boys 16-1", name: "Season Opener", date: "11/21-22", location: "Hanover, MA", maps: "https://maps.app.goo.gl/CSftsXzgN5aBUY4RA", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/season-opener", notes: "Hotel not needed" },
-      { team: "Boys 16-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", passcode: "NA", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
-      { team: "Boys 16-1", name: "MLK 3-day", date: "1/16-18", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/9wogDgLnYg42nmxE9", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/mlk-3-day", notes: "Hotel not needed" },
-      { team: "Boys 16-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
-      { team: "Boys 16-1", name: "Boston National Qualifier", date: "2/19-21", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", passcode: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
-      { team: "Boys 16-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
+      { team: "Boys 16-1", name: "Season Opener", date: "11/21-22", location: "Hanover, MA", maps: "https://maps.app.goo.gl/CSftsXzgN5aBUY4RA", hotel: "", site: "https://www.neaauvolleyball.org/season-opener", notes: "Hotel not needed" },
+      { team: "Boys 16-1", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
+      { team: "Boys 16-1", name: "MLK 3-day", date: "1/16-18", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/9wogDgLnYg42nmxE9", hotel: "", site: "https://www.neaauvolleyball.org/mlk-3-day", notes: "Hotel not needed" },
+      { team: "Boys 16-1", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
+      { team: "Boys 16-1", name: "Boston National Qualifier", date: "2/19-21", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
+      { team: "Boys 16-1", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
 
       // Boys 18-2
-      { team: "Boys 18-2", name: "Season Opener", date: "11/21-22", location: "Hanover, MA", maps: "https://maps.app.goo.gl/CSftsXzgN5aBUY4RA", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/season-opener", notes: "Hotel not needed" },
-      { team: "Boys 18-2", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", passcode: "", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
-      { team: "Boys 18-2", name: "MLK 3-day", date: "1/16-18", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/9wogDgLnYg42nmxE9", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/mlk-3-day", notes: "Hotel not needed" },
-      { team: "Boys 18-2", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
-      { team: "Boys 18-2", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", passcode: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
-      { team: "Boys 18-2", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", passcode: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
+      { team: "Boys 18-2", name: "Season Opener", date: "11/21-22", location: "Hanover, MA", maps: "https://maps.app.goo.gl/CSftsXzgN5aBUY4RA", hotel: "", site: "https://www.neaauvolleyball.org/season-opener", notes: "Hotel not needed" },
+      { team: "Boys 18-2", name: "Home for the Holidays", date: "12/5-6", location: "Mohegan Sun, CT", maps: "https://maps.app.goo.gl/GEe1hsmi4yQh5u9AA", hotel: "https://app.eventconnect.io/events/47170/hotels?registration=2384214", site: "https://www.neaauvolleyball.org/home-for-the-holidays-boys", notes: "Not stay to play" },
+      { team: "Boys 18-2", name: "MLK 3-day", date: "1/16-18", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/9wogDgLnYg42nmxE9", hotel: "", site: "https://www.neaauvolleyball.org/mlk-3-day", notes: "Hotel not needed" },
+      { team: "Boys 18-2", name: "Grand Prix", date: "1/30-31", location: "Fitchburg, MA", maps: "https://maps.app.goo.gl/Sok2QSJ19rs6Nfw1A", hotel: "", site: "https://www.neaauvolleyball.org/grand-prix-weekend", notes: "Hotel not needed" },
+      { team: "Boys 18-2", name: "Boston National Qualifier", date: "2/26-28", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "Hotel not needed" },
+      { team: "Boys 18-2", name: "Regional Champs", date: "3/6-7", location: "Westford, MA", maps: "https://maps.app.goo.gl/GP7yt8VaFCWuZuBX8", hotel: "", site: "https://www.neaauvolleyball.org/regional-championship-boys", notes: "Hotel not needed" },
 
       // Boys 16-2
-      { team: "Boys 16-2", name: "NERVA #1", date: "11/8", location: "Taunton, MA", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", passcode: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
-      { team: "Boys 16-2", name: "NERVA #2", date: "12/5", location: "Taunton or Smith College", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", passcode: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
-      { team: "Boys 16-2", name: "NERVA #3", date: "1/2", location: "Taunton", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", passcode: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
-      { team: "Boys 16-2", name: "NERVA #4", date: "3/13", location: "Taunton", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", passcode: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
-      { team: "Boys 16-2", name: "Snowbrawl", date: "1/23-24", location: "Providence, RI", maps: "https://maps.app.goo.gl/pL1ga8Tdvg2uNdVv7", hotel: "https://portal.thsweb.com/reservations/access/01m764ee7gc42rabpqgj5yk9f3", passcode: "", site: "https://jvctournaments.com/SnowBrawl/", notes: "" },
-      { team: "Boys 16-2", name: "Boston National Qualifier", date: "2/19-21", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", passcode: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "" }
+      { team: "Boys 16-2", name: "NERVA #1", date: "11/8", location: "Taunton, MA", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
+      { team: "Boys 16-2", name: "NERVA #2", date: "12/5", location: "Taunton or Smith College", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
+      { team: "Boys 16-2", name: "NERVA #3", date: "1/2", location: "Taunton", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
+      { team: "Boys 16-2", name: "NERVA #4", date: "3/13", location: "Taunton", maps: "https://maps.app.goo.gl/FZeZGRADAXM7NaUQ7", hotel: "", site: "https://nevolleyball.org/junior-boys-info-schedule/", notes: "" },
+      { team: "Boys 16-2", name: "Snowbrawl", date: "1/23-24", location: "Providence, RI", maps: "https://maps.app.goo.gl/pL1ga8Tdvg2uNdVv7", hotel: "https://portal.thsweb.com/reservations/access/01m764ee7gc42rabpqgj5yk9f3", site: "https://jvctournaments.com/SnowBrawl/", notes: "" },
+      { team: "Boys 16-2", name: "Boston National Qualifier", date: "2/19-21", location: "Boston, MA", maps: "https://maps.app.goo.gl/wsfKWsVyHyhw5jpj6", hotel: "", site: "https://jvctournaments.com/Boston_National_Q/", notes: "" }
     ];
 
     let currentTeam = "All";
@@ -197,7 +222,36 @@
       document.querySelectorAll(".pill").forEach(el => {
         el.classList.toggle("active", el.textContent.trim() === team || (team === "All" && el.textContent.trim() === "All Teams"));
       });
+      updateSpectatorBanner();
       render();
+    }
+
+    function updateSpectatorBanner() {
+      const label = document.getElementById("spectatorLabel");
+      const code = document.getElementById("spectatorCode");
+      const tip = document.getElementById("copyTip");
+
+      if (currentTeam === "All") {
+        label.textContent = "Spectator Code:";
+        code.textContent = "Select a team below";
+        tip.textContent = "Filter by team to view code";
+      } else {
+        label.textContent = `Spectator Code (${currentTeam}):`;
+        code.textContent = spectatorCodes[currentTeam] || "None listed";
+        tip.textContent = "Click code to copy";
+      }
+    }
+
+    function copySpectatorCode() {
+      const code = document.getElementById("spectatorCode").textContent.trim();
+      if (code && !code.includes("Select")) {
+        navigator.clipboard.writeText(code).then(() => {
+          const tip = document.getElementById("copyTip");
+          const oldText = tip.textContent;
+          tip.textContent = "✓ Copied to clipboard!";
+          setTimeout(() => { tip.textContent = oldText; }, 1800);
+        });
+      }
     }
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
@@ -249,6 +303,7 @@
       });
     }
 
+    updateSpectatorBanner();
     render();
   </script>
 </body>
